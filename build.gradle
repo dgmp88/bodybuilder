@@ -54,6 +54,7 @@ project(":core") {
         compile "com.badlogicgames.gdx:gdx-freetype:$gdxVersion"
         
         compile "com.boondog.imports:core:$myGdxClassesVersion"
+            compile 'net.dermetfan.libgdx-utils:libgdx-utils:0.9.1'
     }
 }
 

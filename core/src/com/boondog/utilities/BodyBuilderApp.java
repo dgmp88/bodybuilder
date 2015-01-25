@@ -1,27 +1,24 @@
 package com.boondog.utilities;
 
-import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.GL20;
-import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.boondog.imports.game.MyGame;
+import com.boondog.imports.io.Assets;
+import com.boondog.utilities.screens.BodyBuilderScreen;
+import com.boondog.utilities.screens.FileChooserScreen;
 
-public class BodyBuilderApp extends ApplicationAdapter {
-	SpriteBatch batch;
-	Texture img;
-	
+public class BodyBuilderApp extends MyGame {
 	@Override
-	public void create () {
-		batch = new SpriteBatch();
-		img = new Texture("badlogic.jpg");
+	public void create() {
+		init();
+		Assets.setBaseDir("../core/assets/");
+		printViewportDims();
+		//setScreen(new FileChooserScreen(this));		
+		setScreen(new BodyBuilderScreen(this, Gdx.files.local("../core/assets/rocket.png")));
 	}
 
 	@Override
-	public void render () {
-		Gdx.gl.glClearColor(1, 0, 0, 1);
-		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-		batch.begin();
-		batch.draw(img, 0, 0);
-		batch.end();
+	protected void initViewport() {
+		setExtendViewport(200, 160, 300, 160);		
 	}
+
 }
