@@ -22,8 +22,10 @@ import com.badlogic.gdx.utils.Json;
 import com.badlogic.gdx.utils.Scaling;
 import com.boondog.imports.game.MyGame;
 import com.boondog.imports.game.MyScreen;
+import com.boondog.imports.physics.BodyBuilderBody;
+import com.boondog.utilities.BodyBuilderApp;
 import com.boondog.utilities.control.BodyBuilderControls;
-import com.boondog.utilities.model.BodyVertices;
+import com.boondog.utilities.model.Triangulator;
 
 
 public class BodyBuilderScreen extends MyScreen {
@@ -33,20 +35,21 @@ public class BodyBuilderScreen extends MyScreen {
 	Vector2 pos, size;
 	
 	BodyBuilderControls controller;
-	private BodyVertices vertices = new BodyVertices();
+	Array<Vector2> vertices = new Array<Vector2>();
 	ShapeRenderer renderer = new ShapeRenderer();
-	Array<Object> lastCommands = new Array<Object>();
-
 	
 	Skin skin, fileChooserSkin;
-	
 	Table menuTable;
+	
+	Triangulator triangulator = new Triangulator();
+	boolean triangulating = false;
 	
 	public BodyBuilderScreen(MyGame app, FileHandle fh) {
 		super(app);
+		stage.clear();
 		this.imageFile = fh;
 		
-		System.out.println(imageFile.parent().path() + "/" + imageFile.nameWithoutExtension() + ".json");
+		System.out.println(BodyBuilderApp.workingDir + "/" + imageFile.nameWithoutExtension() + ".json");
 		
 		pos = new Vector2(worldWidth * 0.5f, worldHeight * 0.45f);
 		
@@ -121,37 +124,48 @@ public class BodyBuilderScreen extends MyScreen {
 		menuTable.add(write).pad(5);
 		
 		
+		// Triangulate file button
+		TextButtonStyle bS2 = new TextButtonStyle();
+		bS2.font = assets.getFont("fonts/helvetica.ttf", 50);
+		bS2.font.setScale(0.2f);
+		bS2.fontColor = Color.BLACK;
+		bS2.up = skin.newDrawable("square", Color.GRAY);
+		bS2.checked = skin.newDrawable("square", Color.MAROON);
+
+		final TextButton triangulate = new TextButton("Triangulate", bS2);
+		triangulate.addListener(new InputListener() {
+            public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
+        		return true;
+            }
+            
+            public void touchUp (InputEvent event, float x, float y, int pointer, int button) {
+            	if (triangulate.isChecked()) {
+            		triangulating = true;
+            	} else {
+            		triangulating = false;
+            	}
+            	triangulate();
+            }
+        });
+		menuTable.add(triangulate).pad(5);
+		
 		stage.addActor(menuTable);
 	}
 	
 	protected void openImageFile() {
-		stage.getRoot().removeActor(menuTable);
-		
-		FileChooserTable fct = new FileChooserTable(this,worldWidth * 0.5f,worldHeight, fileChooserSkin);
-		fct.setPosition(worldWidth * 0.5f, worldHeight * 0.5f, Align.center);
-		stage.addActor(fct);
-		System.out.println("added");
-		stage.setDebugAll(true);
+		changeScreen(new FileChooserScreen(app));
 	}
 
 
 	protected void writeFile() {
 		Json json = new Json();			
 		String ext = ".json";
-		String name = imageFile.parent().path() + "/" + imageFile.nameWithoutExtension();
-
-		if (Gdx.files.local(name + ext).exists()) {
-			int num = 1;
-			while (Gdx.files.local(name + num + ext).exists()) {
-				num ++;
-			}
-			name = name + num + ext;
-		} else {
-			name = name + ext;
-		}
+		String name = imageFile.nameWithoutExtension();
+		FileHandle fh = Gdx.files.absolute(BodyBuilderApp.workingDir + "/" + name + ext);
 		
-		FileHandle fh = Gdx.files.local(name);
-		json.toJson(getVertices().getVertices(), fh);
+		BodyBuilderBody body = new BodyBuilderBody(vertices, triangulator.getTriangulation());
+		
+		json.toJson(body, fh);
 	}
 	
 	
@@ -177,31 +191,33 @@ public class BodyBuilderScreen extends MyScreen {
 		
 		renderer.set(ShapeType.Filled);
 		
+		
 		// Draw the circles
-		for (int i = 0; i < getVertices().getVertices().size; i++) {
-			Vector2 v = getVertices().getVertex(i);
-			renderer.circle(v.x, v.y, BodyVertices.vertSize, 50);
-			
+		for (int i = 0; i < vertices.size; i++) {
+			Vector2 v = vertices.get(i);
+			renderer.circle(v.x, v.y, 1, 50);
 			if (i >  0) {
-				renderer.line(getVertices().getVertex(i), getVertices().getVertex(i-1));
+				renderer.line(vertices.get(i), vertices.get(i-1));
 			}
 		}
-		renderer.setColor(Color.WHITE);
+		renderer.setColor(Color.LIGHT_GRAY);
 
 		// Draw the lines
-		for (int i = 0; i < getVertices().getVertices().size; i++) {
+		for (int i = 0; i < vertices.size; i++) {
 			if (i >  0) {
-				renderer.line(getVertices().getVertex(i), getVertices().getVertex(i-1));
+				renderer.line(vertices.get(i), vertices.get(i-1));
 			}
 		}
 		
-		if (getVertices().getVertices().size>0) {
-			renderer.line(getVertices().getVertex(0), getVertices().getVertex(getVertices().getVertices().size-1));
+		if (vertices.size>1) {
+			renderer.line(vertices.get(0), vertices.get(vertices.size-1));
+		}
+		
+		if (triangulating) {
+			triangulator.draw(renderer, vertices);
 		}
 		
 		renderer.end();
-		
-		
 	}
 
 	
@@ -209,31 +225,48 @@ public class BodyBuilderScreen extends MyScreen {
 	public void dispose() {
 		
 	}
-	public void addStar(Vector2 tmp) {
-		getVertices().addVertex(tmp);
-		lastCommands.add(tmp);
+	public void addVertex(Vector2 tmp) {
+		if (inBounds(tmp)) {
+			vertices.add(tmp);
+			triangulate();
+		}
 	}
 	
-	public void undo() {
-		if (lastCommands.size>0) {
-			Object o = lastCommands.pop();
-			
-			if (o instanceof Vector2) {
-				getVertices().removeVertex((Vector2) o);
-			}
-						
+	private void triangulate() {
+		if (triangulating) {
+			triangulator.makeTriangulation(vertices);
 		}
 	}
 
-	public BodyVertices getVertices() {
+
+	private boolean inBounds(Vector2 tmp) {
+		if (tmp.x < pos.x - size.x/2 || tmp.y < pos.y - size.y/2) {
+			System.out.println(tmp + " "+  pos);
+			return false;
+		} else if (tmp.x > pos.x + size.x/2 || tmp.y > pos.y + size.y/2) {
+			return false;
+		}
+
+		return true;
+	}
+
+
+	public void undo() {
+		if (vertices.size>0) {
+			vertices.pop();
+		}
+	}
+
+	public Array<Vector2> getVertices() {
 		return vertices;
 	}
 
 
-	public void setVertices(BodyVertices vertices) {
-		this.vertices = vertices;
-	}	
-	
+	public void update() {
+		if (triangulating) {
+			triangulator.makeTriangulation(vertices);
+		}
+	}
 	
 	@Override
 	public void reset() {

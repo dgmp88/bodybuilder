@@ -14,6 +14,7 @@ public class FileChooserScreen extends MyScreen {
 	
 	public FileChooserScreen(MyGame app) {
 		super(app);
+		stage.clear();
 		inputs = new InputMultiplexer(stage);
 		setDebugMode();
 
@@ -36,7 +37,7 @@ public class FileChooserScreen extends MyScreen {
 	}
 
 
-	protected void openImageFile() {		
+	protected void openImageFile() {
 		FileChooserTable fct = new FileChooserTable(this,worldWidth * 0.5f,worldHeight, fileChooserSkin);
 		fct.setPosition(worldWidth * 0.5f, worldHeight * 0.5f, Align.center);
 		stage.addActor(fct);

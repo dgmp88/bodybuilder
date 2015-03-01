@@ -5,6 +5,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.math.Vector2;
 import com.boondog.imports.game.MyGame;
+import com.boondog.imports.math.MyVectors;
 import com.boondog.utilities.screens.BodyBuilderScreen;
 
 public class BodyBuilderControls implements InputProcessor {
@@ -22,7 +23,7 @@ public class BodyBuilderControls implements InputProcessor {
 		case Keys.S:
 			tmp.set(Gdx.input.getX(),Gdx.input.getY());
 			screenToWorld(tmp);
-			screen.addStar(tmp.cpy());
+			screen.addVertex(tmp.cpy());
 			break;
 		case Keys.R:
 			screen.reset();
@@ -33,14 +34,15 @@ public class BodyBuilderControls implements InputProcessor {
 		case Keys.LEFT:
 			tmp.set(Gdx.input.getX(),Gdx.input.getY());
 			screenToWorld(tmp);
-			screen.getVertices().rotate(tmp,3);
+			MyVectors.rotate(screen.getVertices(), screen.getVertices().first(), 3);
 			break;
 		case Keys.RIGHT:
 			tmp.set(Gdx.input.getX(),Gdx.input.getY());
 			screenToWorld(tmp);
-			screen.getVertices().rotate(tmp,-3);
+			MyVectors.rotate(screen.getVertices(), screen.getVertices().first(), -3);
 			break;
 		}
+		screen.update();
 		return false;
 	}
 
@@ -58,7 +60,7 @@ public class BodyBuilderControls implements InputProcessor {
 	public boolean touchDown(int screenX, int screenY, int pointer, int button) {
 		tmp.set(screenX,screenY);
 		screenToWorld(tmp);
-		screen.addStar(tmp.cpy());
+		screen.addVertex(tmp.cpy());
 		return false;
 	}
 

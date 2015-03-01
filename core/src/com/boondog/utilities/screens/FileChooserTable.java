@@ -14,7 +14,9 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton.TextButtonStyle;
 import com.badlogic.gdx.scenes.scene2d.utils.Align;
 import com.badlogic.gdx.utils.TimeUtils;
+import com.boondog.imports.game.MyGame;
 import com.boondog.imports.game.MyScreen;
+import com.boondog.utilities.BodyBuilderApp;
 
 public class FileChooserTable extends Table {
 	MyScreen screen;
@@ -40,7 +42,14 @@ public class FileChooserTable extends Table {
 		setBackground(skin.newDrawable("square",Color.WHITE));
 		
 		setupStyle();
-		currentDirectory = Gdx.files.absolute(Gdx.files.getLocalStoragePath());
+		screen.getApp();
+		BodyBuilderApp.workingDir = MyGame.getPrefs().getString("lastDir",""); 
+		
+		if (BodyBuilderApp.workingDir.equals("")) {
+			BodyBuilderApp.workingDir = Gdx.files.getLocalStoragePath();
+		}
+		
+		currentDirectory = Gdx.files.absolute(BodyBuilderApp.workingDir);
 		
 		setupTopButtons();
 		setupFileListTable(currentDirectory);
@@ -160,6 +169,9 @@ public class FileChooserTable extends Table {
 	            public void touchUp (InputEvent event, float x, float y, int pointer, int button) {
 	            	if (TimeUtils.millis() - lastClicked < 500) {
 	            		if (fh.isDirectory()) {
+	            			MyGame.getPrefs().putString("lastDir",fh.path());
+	            			MyGame.getPrefs().flush();
+	            			BodyBuilderApp.workingDir = fh.path();
 	            			setupFileListTable(fh);
 	            		} else {
 	            			selectFile();
